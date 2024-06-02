@@ -16,6 +16,37 @@ from django.http import HttpResponse
 import pandas as pd
 import datetime
 
+
+@api_view(['POST'])
+def undo_round(request, game_id):
+    """
+    Undo the last round of a game
+    todo maybe must be considered in bockrunde calculation
+    :param request:
+    :return:
+    """
+    try:
+        game = Game.objects.get(game_id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'Game not found.'}, status=404)
+
+    rounds = game.get_all_rounds()
+    print(rounds.first())
+    if not rounds.exists():
+        return Response({'error': 'No rounds to undo.'}, status=404)
+
+    round = rounds.last()
+    player_points = round.player_points.all()
+    for player_point in player_points:
+        player_point.delete()
+        player_point.save()
+
+    round.delete()
+    round.save()
+
+    serializer = RoundSerializer(round)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 @api_view(['POST'])
 def add_round(request, game_id):
     """
