@@ -136,6 +136,31 @@ def make_csv_export(request):
     return response
 
 
+def get_players_with_pflichtsolo(game_id):
+    """
+    Get all players which have to still play their Pflichtsolo
+    :param game_id:
+    :return:
+    """
+    game = Game.objects.get(game_id=game_id)
+    rounds = game.get_all_rounds()
+    players_with_solo_done = []
+
+    for round in rounds:
+        amount_positive = 0
+        positive_player = None
+        player_points_round = round.player_points.all()
+        for player_point in player_points_round:
+            if player_point.points > 0:
+                amount_positive += 1
+                positive_player = player_point.player
+
+        if amount_positive == 1:
+            players_with_solo_done.append(positive_player)
+
+    return [player for player in game.players.all() if player not in players_with_solo_done]
+
+
 # todo test, maybe it works maybe it doesnt
 @api_view(['POST'])
 def commit_game(request, game_id):

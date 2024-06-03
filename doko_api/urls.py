@@ -52,6 +52,7 @@ urlpatterns = [
     path('get_export/', views.make_csv_export, name='get_export'),
     path('games/<uuid:game_id>/rounds/', views.get_all_rounds),
     path('games/<uuid:game_id>/add_round/', views.add_round),
+    path('games/<uuid:game_id>/get_pflichtsolo/', views.get_players_with_pflichtsolo),
     path('stats/<uuid:player_id>/game_points/', views.get_player_points_for_game_stats),
     path('stats/<uuid:player_id>/round_points/', views.get_player_points_for_round_stats),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

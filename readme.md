@@ -10,4 +10,5 @@ Then you will also find an easy installation guide here via docker compose.
 TZ in .env empty, try to get os tz, else utc
 
 #### todos after test
-1. pflichtsolo played detection.
+2. 1 bockrunde
+3. csv importer
