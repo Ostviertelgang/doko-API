@@ -14,7 +14,7 @@ from .models import Game, Round, PlayerPoints, Player
 from .serializers import GameSerializer, RoundSerializer, PlayerPointsSerializer, PlayerSerializer
 from django.http import HttpResponse
 import pandas as pd
-import datetime
+from django.utils import timezone
 
 
 @api_view(['POST'])
@@ -189,7 +189,7 @@ def commit_game(request, game_id):
         game.player_points.add(player_points)
 
     game.is_closed = True
-    game.closed_at = datetime.datetime.now() # todo fix warning RuntimeWarning: DateTimeField Game.closed_at received a naive datetime (2024-06-05 17:24:57.134636) while time zone support is active.
+    game.closed_at = timezone.now()
     game.save()
 
     serializer = GameSerializer(game)
