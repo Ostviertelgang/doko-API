@@ -50,6 +50,7 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path("admin/", admin.site.urls),
     path('get_export/', views.make_csv_export, name='get_export'),
+    path('import_csv/', views.import_csv, name='import_csv'),
     path('games/<uuid:game_id>/rounds/', views.get_all_rounds),
     path('games/<uuid:game_id>/add_round/', views.add_round),
     path('games/<uuid:game_id>/get_pflichtsolo/', views.get_players_with_pflichtsolo),

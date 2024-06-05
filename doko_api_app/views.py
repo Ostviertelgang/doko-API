@@ -144,7 +144,7 @@ def make_csv_export(request):
     games = Game.objects.all()
     players = Player.objects.all()
     player_names = [player.name for player in players]
-    df = pd.DataFrame(columns=player_names+['game_id', 'game_name', 'is_closed', 'created_at', 'closed_at'])
+    df = pd.DataFrame(columns=player_names+['game_id', 'game_name', 'is_closed', 'created_at', 'closed_at']) # if you ever add new ones, als add them below in the importer
     for game in games:
         player_points = game.player_points.all()
         player_points_dict = {player_point.player.name: player_point.points for player_point in player_points}
@@ -156,6 +156,44 @@ def make_csv_export(request):
     response['Content-Disposition'] = 'attachment; filename="doko_export.csv"'
     df.to_csv(path_or_buf=response, index=False)
     return response
+
+
+@api_view(['POST'])
+def import_csv(request):
+    """
+    Import csv games previously exported
+    :param request:
+    :return:
+    """
+    csv_file = request.FILES['file']
+    df = pd.read_csv(csv_file)
+
+    predefined_columns = ['game_id', 'game_name', 'is_closed', 'created_at', 'closed_at']
+    player_names = [col for col in df.columns if col not in predefined_columns]
+
+    for index, row in df.iterrows():
+        game_id = row['game_id']
+        game_name = row['game_name']
+        is_closed = row['is_closed']
+        created_at = row['created_at']
+        closed_at = row['closed_at']
+
+        game, created = Game.objects.get_or_create(game_id=game_id, defaults={
+            'game_name': game_name,
+            'is_closed': is_closed,
+            'created_at': created_at,
+            'closed_at': closed_at
+        })
+
+        for player_name in player_names:
+            points = row[player_name]
+            player, _ = Player.objects.get_or_create(name=player_name)
+            player_points = PlayerPoints.objects.create(player=player, points=points)
+            game.player_points.add(player_points)
+
+        game.save()
+
+    return Response({'message': 'CSV imported successfully.'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def get_players_with_pflichtsolo(request, game_id):
