@@ -58,13 +58,20 @@ def add_round(request, game_id):
     winning_players = request.data.get('winning_players')
     losing_players = request.data.get('losing_players')
     points = request.data.get('points')
+    caused_bock_parrallel = request.data.get('caused_bock_parrallel')
 
     try:
         game = Game.objects.get(game_id=game_id)
     except Game.DoesNotExist:
         return Response({'error': 'Game not found.'}, status=404)
 
-    round = Round.objects.create(game=game)
+    round_obj = Round.objects.create(game=game)
+    # decrease the bockrunden
+    game.bock_round_status = [remaining_bock_rounds - 1 for remaining_bock_rounds in game.bock_round_status if
+                              remaining_bock_rounds > 0]
+
+    round_obj.bocks_parallel = len(game.bock_round_status) # this is how many bocks are going
+    round_obj.bock_multiplier = 2 ** round_obj.bocks_parallel
 
     if len(winning_players) == 1:
         is_solo = True
@@ -74,20 +81,22 @@ def add_round(request, game_id):
     for player_id in winning_players:
         player = Player.objects.get(player_id=player_id)
         if is_solo:
-            player_points = PlayerPoints.objects.create(player=player, points=points * 3)
+            player_points = PlayerPoints.objects.create(player=player, points=points * 3 * round_obj.bock_multiplier)
         else:
-            player_points = PlayerPoints.objects.create(player=player, points=points)
-        round.player_points.add(player_points)
+            player_points = PlayerPoints.objects.create(player=player, points=points * round_obj.bock_multiplier)
+        round_obj.player_points.add(player_points)
 
     for player_id in losing_players:
         player = Player.objects.get(player_id=player_id)
-        player_points = PlayerPoints.objects.create(player=player, points=points * -1)
-        round.player_points.add(player_points)
-
-    round.save()
+        player_points = PlayerPoints.objects.create(player=player, points=points * -1 * round_obj.bock_multiplier)
+        round_obj.player_points.add(player_points)
+    # add new bockrunden if needed
+    # 4 players, add 4 bockrunden, 5 player 5 round etc.
+    [game.bock_round_status.append(len(game.players.all())) for i in range(0,caused_bock_parrallel)]
+    round_obj.save()
     game.save()
 
-    serializer = RoundSerializer(round)
+    serializer = RoundSerializer(round_obj)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
