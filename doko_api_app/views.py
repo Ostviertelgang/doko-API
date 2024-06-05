@@ -41,8 +41,10 @@ def undo_round(request, game_id):
         player_point.delete()
         player_point.save()
 
+    game.bock_round_status = [remaining_bock_rounds + 1 for remaining_bock_rounds in game.bock_round_status]
     round.delete()
     round.save()
+    game.save()
 
     serializer = RoundSerializer(round)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
