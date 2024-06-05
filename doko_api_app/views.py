@@ -17,6 +17,20 @@ import pandas as pd
 from django.utils import timezone
 
 
+@api_view(['GET'])
+def get_bock_status(request, game_id):
+    """
+    Get the bock status of a game
+    :param request:
+    :return:
+    """
+    try:
+        game = Game.objects.get(game_id=game_id)
+    except Game.DoesNotExist:
+        return Response({'error': 'Game not found.'}, status=404)
+
+    return Response({'bock_round_status': game.bock_round_status}, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 def undo_round(request, game_id):
     """
