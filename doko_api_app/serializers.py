@@ -34,7 +34,7 @@ class PlayerPointsSerializer(serializers.ModelSerializer):
 
 class GameSerializer(serializers.ModelSerializer):
     # return all the player in the game
-    players = PlayerSerializer(many=True, read_only=True)
+    players = serializers.SlugRelatedField(many=True, slug_field='player_id', queryset=Player.objects.all())
     player_points = PlayerPointsSerializer(many=True, read_only=True)
     class Meta:
         model = Game

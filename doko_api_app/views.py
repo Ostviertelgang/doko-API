@@ -135,8 +135,8 @@ def make_csv_export(request):
     df.to_csv(path_or_buf=response, index=False)
     return response
 
-
-def get_players_with_pflichtsolo(game_id):
+@api_view(['GET'])
+def get_players_with_pflichtsolo(request, game_id):
     """
     Get all players which have to still play their Pflichtsolo
     :param game_id:
@@ -157,11 +157,12 @@ def get_players_with_pflichtsolo(game_id):
 
         if amount_positive == 1:
             players_with_solo_done.append(positive_player)
+    players_in_game = game.players.all()
+    players_with_solo_ahead = [player for player in players_in_game if player not in players_with_solo_done]
+    serializer = PlayerSerializer(players_with_solo_ahead, many=True)
+    return Response(serializer.data)
 
-    return [player for player in game.players.all() if player not in players_with_solo_done]
 
-
-# todo test, maybe it works maybe it doesnt
 @api_view(['POST'])
 def commit_game(request, game_id):
     """
@@ -188,7 +189,7 @@ def commit_game(request, game_id):
         game.player_points.add(player_points)
 
     game.is_closed = True
-    game.closed_at = datetime.datetime.now()
+    game.closed_at = datetime.datetime.now() # todo fix warning RuntimeWarning: DateTimeField Game.closed_at received a naive datetime (2024-06-05 17:24:57.134636) while time zone support is active.
     game.save()
 
     serializer = GameSerializer(game)
