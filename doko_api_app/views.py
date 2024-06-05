@@ -21,7 +21,6 @@ from django.utils import timezone
 def undo_round(request, game_id):
     """
     Undo the last round of a game
-    todo maybe must be considered in bockrunde calculation
     :param request:
     :return:
     """
@@ -31,7 +30,6 @@ def undo_round(request, game_id):
         return Response({'error': 'Game not found.'}, status=404)
 
     rounds = game.get_all_rounds()
-    print(rounds.first())
     if not rounds.exists():
         return Response({'error': 'No rounds to undo.'}, status=404)
 
@@ -43,11 +41,10 @@ def undo_round(request, game_id):
 
     game.bock_round_status = [remaining_bock_rounds + 1 for remaining_bock_rounds in game.bock_round_status]
     round.delete()
-    round.save()
+    #round.save()
     game.save()
 
-    serializer = RoundSerializer(round)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response({'message': 'Round undone.'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def add_round(request, game_id):
