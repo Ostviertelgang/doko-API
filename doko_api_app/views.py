@@ -79,9 +79,6 @@ def add_round(request, game_id):
         return Response({'error': 'Game not found.'}, status=404)
 
     round_obj = Round.objects.create(game=game)
-    # decrease the bockrunden
-    game.bock_round_status = [remaining_bock_rounds - 1 for remaining_bock_rounds in game.bock_round_status if
-                              remaining_bock_rounds > 0]
 
     round_obj.bocks_parallel = len(game.bock_round_status) # this is how many bocks are going
     round_obj.bock_multiplier = 2 ** round_obj.bocks_parallel
@@ -103,6 +100,11 @@ def add_round(request, game_id):
         player = Player.objects.get(player_id=player_id)
         player_points = PlayerPoints.objects.create(player=player, points=points * -1 * round_obj.bock_multiplier)
         round_obj.player_points.add(player_points)
+
+    # decrease the bockrunden
+    game.bock_round_status = [remaining_bock_rounds - 1 for remaining_bock_rounds in game.bock_round_status if
+                              remaining_bock_rounds > 1]
+
     # add new bockrunden if needed
     # 4 players, add 4 bockrunden, 5 player 5 round etc.
     [game.bock_round_status.append(len(game.players.all())) for i in range(0,caused_bock_parrallel)]
