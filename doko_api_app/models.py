@@ -21,9 +21,6 @@ class Game(models.Model):
     is_closed = models.BooleanField(default=False)
     #one game can have many players
     players = models.ManyToManyField('Player', related_name='games', blank=True)
-    #one game can have many rounds
-    #rounds = models.ManyToManyField('Round', related_name='games', blank=True) # todo check if needed # do not return to frontend
-    #one game can have one playerpoints for the final count when the game is cloed its a foreign key
     player_points = models.ManyToManyField('PlayerPoints', related_name='games', blank=True) # do not return to frontend
     bock_round_status = JSONField(default=list,blank=True)
 
