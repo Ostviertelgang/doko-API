@@ -282,12 +282,15 @@ def get_player_points_for_round_stats(request, player_id):
     :param request:
     :return:
     """
+    game_id = request.data.get('game_id')
     try:
         player = Player.objects.get(player_id=player_id)
     except Player.DoesNotExist:
         return Response({'error': 'Player not found.'}, status=404)
-
-    round_points = PlayerPoints.objects.filter(player=player, rounds__isnull=False)
+    if game_id:
+        round_points = PlayerPoints.objects.filter(player=player, rounds__isnull=False, rounds__game__game_id=game_id)
+    else:
+        round_points = PlayerPoints.objects.filter(player=player, rounds__isnull=False)
     serializer = PlayerPointsSerializer(round_points, many=True)
     return Response(serializer.data)
 
