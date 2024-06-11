@@ -1,5 +1,7 @@
 # Doppelkopf Counting Application API Server in Django
 
+![Banner Picture](https://i.imgur.com/35A8US2.png)
+
 ! STILL HEAVY WORK IN PROGRESS !
 
 should work but I would wait till the release...
