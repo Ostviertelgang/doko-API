@@ -1,6 +1,6 @@
 # Doppelkopf Counting Application API Server in Django
 
-![Banner Picture](https://i.imgur.com/35A8US2.png)
+![Banner Picture](https://i.imgur.com/KHbifDD.png)
 
 ! STILL HEAVY WORK IN PROGRESS !
 
