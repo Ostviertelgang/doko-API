@@ -6,6 +6,7 @@ Doppelkopf is a german card game, that is played with 4 players in 2 teams. The 
 More information about the game can be found [here](https://en.wikipedia.org/wiki/Doppelkopf).
 
 The doko-suite does not implement the game itself, but is only a tool to keep track of the points of the players over a game (usually 16 rounds), as well as saving all time statistic and visualizing this data.
+If you search for a good implementation of the game itself, which works well with this project, I would recommend [doko3000](https://github.com/HenriWahl/doko3000), which can accomodate all rulesets.
 
 This component is the backend server, implemented in Django Rest Framework.
 It provides a REST API to the frontend, which currently is a Discord python bot you can find [here](https://github.com/Ostviertelgang/doko-Discord-Bot).
