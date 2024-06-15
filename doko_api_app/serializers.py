@@ -52,6 +52,13 @@ class PlayerPointsSerializer(serializers.ModelSerializer):
         return round.created_at if round else None
 
 
+class CompactPlayerPointsSerializer(serializers.ModelSerializer):
+    player = serializers.SlugRelatedField(slug_field='player_id', queryset=Player.objects.all())
+    class Meta:
+        model = PlayerPoints
+        fields = ['player', 'points']
+
+
 class GameSerializer(serializers.ModelSerializer):
     # return all the player in the game
     players = serializers.SlugRelatedField(many=True, slug_field='player_id', queryset=Player.objects.all())

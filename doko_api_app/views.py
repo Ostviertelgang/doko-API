@@ -17,6 +17,7 @@ from .serializers import GameSerializer, RoundSerializer, PlayerPointsSerializer
 from django.http import HttpResponse
 import pandas as pd
 from django.utils import timezone
+from doko_api_app.serializers import CompactPlayerPointsSerializer
 
 @api_view(['GET'])
 def get_bock_status(request, game_id):
@@ -380,7 +381,7 @@ class GameViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows games to be viewed or edited.
     """
-    queryset = Game.objects.all().order_by('created_at')
+    queryset = Game.objects.all().order_by('-created_at')
     serializer_class = GameSerializer
 
 
@@ -394,6 +395,32 @@ class GameViewSet(viewsets.ModelViewSet):
         # Retrieve the Game object that matches the UUID
         return Game.objects.get(game_id=uuid)
     #permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Create a list to hold the response data
+        response_data = []
+
+        # Iterate over the queryset
+        for game in queryset:
+            # Serialize the Game instance
+            serializer = self.get_serializer(game)
+
+            # Retrieve the related PlayerPoints instances
+            player_points = PlayerPoints.objects.filter(games__game_id=game.game_id)
+
+            # Serialize the PlayerPoints instances using the custom serializer
+            player_points_serializer = CompactPlayerPointsSerializer(player_points, many=True)
+
+            # Add the serialized PlayerPoints data to the serialized Game data
+            game_data = serializer.data
+            game_data['player_points'] = player_points_serializer.data
+
+            # Add the game data to the response data
+            response_data.append(game_data)
+
+        return Response(response_data)
 
 class RoundViewSet(viewsets.ModelViewSet):
     """
