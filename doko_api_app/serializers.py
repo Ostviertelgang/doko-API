@@ -1,6 +1,11 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import serializers
 from .models import Game, Round, PlayerPoints, Player
+from rest_framework import serializers
+
+
+class FileUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
 
 
 class PlayerSerializer(serializers.ModelSerializer):

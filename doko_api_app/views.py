@@ -3,10 +3,12 @@ from django.shortcuts import render
 # Create your views here.
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
-
+from datetime import datetime
 from doko_api_app.serializers import GroupSerializer, UserSerializer
-
-
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import FormParser, MultiPartParser
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -15,7 +17,6 @@ from .serializers import GameSerializer, RoundSerializer, PlayerPointsSerializer
 from django.http import HttpResponse
 import pandas as pd
 from django.utils import timezone
-
 
 @api_view(['GET'])
 def get_bock_status(request, game_id):
@@ -147,12 +148,15 @@ def make_csv_export(request):
     players = Player.objects.all()
     player_names = [player.name for player in players]
     df = pd.DataFrame(columns=player_names+['game_id', 'game_name', 'is_closed', 'created_at', 'closed_at']) # if you ever add new ones, als add them below in the importer
+    df = df.dropna(axis=1, how='all')
     for game in games:
         player_points = game.player_points.all()
         player_points_dict = {player_point.player.name: player_point.points for player_point in player_points}
         player_points_dict.update({'game_id': game.game_id, 'game_name': game.game_name, 'is_closed': game.is_closed,
                                    'created_at': game.created_at, 'closed_at': game.closed_at})
-        df = pd.concat([df, pd.DataFrame(player_points_dict, index=[0])], ignore_index=True)
+        player_points_df = pd.DataFrame(player_points_dict, index=[0])
+        player_points_df = player_points_df.dropna(axis=1, how='all')
+        df = pd.concat([df, player_points_df], ignore_index=True)
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="doko_export.csv"'
@@ -160,42 +164,80 @@ def make_csv_export(request):
     return response
 
 
+file_param = openapi.Parameter('file', in_=openapi.IN_FORM, type=openapi.TYPE_FILE)
+create_game_duplicates_based_on_ids_param = openapi.Parameter('create_game_duplicates_based_on_ids', in_=openapi.IN_FORM, type=openapi.TYPE_BOOLEAN, required=False)
+
+
+@swagger_auto_schema(method='post', manual_parameters=[file_param, create_game_duplicates_based_on_ids_param])
 @api_view(['POST'])
+@parser_classes([FormParser, MultiPartParser])
 def import_csv(request):
     """
     Import csv games previously exported
     :param request:
     :return:
     """
-    csv_file = request.FILES['file']
+    import_metadata = {}
+
+    csv_file = request.data['file']
     df = pd.read_csv(csv_file)
+    create_game_duplicates_based_on_ids = request.data.get('create_game_duplicates_based_on_ids', False)
+
+    if create_game_duplicates_based_on_ids == 'true' or create_game_duplicates_based_on_ids is True: # todo find the proper way to do this
+        create_game_duplicates_based_on_ids = True
+    else:
+        create_game_duplicates_based_on_ids = False
+
+    import_metadata["csv_length"] = len(df)
 
     predefined_columns = ['game_id', 'game_name', 'is_closed', 'created_at', 'closed_at']
     player_names = [col for col in df.columns if col not in predefined_columns]
+    import_metadata["player_names"] = player_names
+    games_create = 0
+    players_created = 0
 
     for index, row in df.iterrows():
         game_id = row['game_id']
         game_name = row['game_name']
         is_closed = row['is_closed']
         created_at = row['created_at']
+        if pd.isna(created_at):
+            created_at = datetime.now() # if no created at is given, use now
+        created_at = (pd.to_datetime(created_at))
         closed_at = row['closed_at']
+        closed_at = (pd.to_datetime(closed_at))
+        if pd.isna(closed_at):
+            closed_at = None
 
-        game, created = Game.objects.get_or_create(game_id=game_id, defaults={
-            'game_name': game_name,
-            'is_closed': is_closed,
-            'created_at': created_at,
-            'closed_at': closed_at
-        })
+        if create_game_duplicates_based_on_ids:
+            #create with new id
+            game = Game.objects.create(game_name=game_name, is_closed=is_closed, created_at=created_at, closed_at=closed_at)
+            games_create += 1
+        else:
+            game, created = Game.objects.get_or_create(game_id=game_id, defaults={
+                'game_name': game_name,
+                'is_closed': is_closed,
+                'created_at': created_at,
+                'closed_at': closed_at
+            })
+            if created:
+                games_create += 1
 
         for player_name in player_names:
             points = row[player_name]
-            player, _ = Player.objects.get_or_create(name=player_name)
+            if pd.isna(points):
+                continue
+            player, created = Player.objects.get_or_create(name=player_name)
+            if created:
+                players_created += 1
             player_points = PlayerPoints.objects.create(player=player, points=points)
             game.player_points.add(player_points)
 
         game.save()
-
-    return Response({'message': 'CSV imported successfully.'}, status=status.HTTP_200_OK)
+    import_metadata["games_created"] = games_create
+    import_metadata["players_created"] = players_created
+    import_metadata["status"] = "Import successful."
+    return Response(import_metadata, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 def get_players_with_pflichtsolo(request, game_id):

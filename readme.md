@@ -35,5 +35,3 @@ Further analysis features are planned for future releases.
 #### old stuff
 TZ in .env empty, try to get os tz, else utc
 
-#### todos after test
-1. csv importer (to be tested) defintions and how-to
