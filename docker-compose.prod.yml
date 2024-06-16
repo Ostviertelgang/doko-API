@@ -26,8 +26,10 @@ services:
     build: ./nginx
     volumes:
       - static_volume:/home/app/web/staticfiles
-    ports:
-      - 8001:80
+    #ports:
+    #  - 8001:80
+    expose:
+      - 80
     depends_on:
       - web
 
