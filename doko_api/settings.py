@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 #DEBUG = bool(getenv("DEBUG", default=1))
-DEBUG = True
+DEBUG = os.environ.get("DEBUG")
 
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
@@ -97,7 +97,7 @@ DATABASES = {
         "USER": os.environ.get("SQL_USER"),
         "PASSWORD": os.environ.get("SQL_PASSWORD"),
         "HOST": os.environ.get("SQL_HOST"),
-        "PORT": os.environ.get("SQL_PORT"), # ssh -L 5431:localhost:5432 valentin@move.ostviertelgang.de
+        "PORT": os.environ.get("SQL_PORT"),
 
     }
 }

@@ -4,10 +4,10 @@ services:
   web:
     build: ./
     command: python manage.py runserver 0.0.0.0:8000
+    expose:
+      - 8000
     volumes:
       - ./:/usr/src/app/
-    ports:
-      - 8001:8000
     env_file:
       - ./dev.env
     depends_on:
@@ -17,10 +17,8 @@ services:
     volumes:
       #- ./data/:/var/lib/postgresql/data/
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=hello_django
-      - POSTGRES_PASSWORD=hello_django
-      - POSTGRES_DB=doko
+    env_file:
+        - ./dev.env
 
 volumes:
   postgres_data:
