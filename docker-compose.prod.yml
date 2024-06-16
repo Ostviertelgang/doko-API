@@ -9,8 +9,8 @@ services:
     command: gunicorn doko_api.wsgi:application --bind 0.0.0.0:8000
     #expose:
     #  - 8000
-    ports:
-      - 8000:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
     env_file:
       - ./prod.env
     depends_on:
@@ -22,5 +22,15 @@ services:
     env_file:
       - ./prod.db.env
 
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    ports:
+      - 8001:80
+    depends_on:
+      - web
+
 volumes:
   postgres_data:
+  static_volume:
