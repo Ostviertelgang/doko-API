@@ -24,6 +24,13 @@ I have the API already deployed and its working fine, but I want to finalize the
 
 Once the API is released, you can install it with docker-compose and a dockerhub image.
 
+### Build yourself
+```bash
+chmod +x ./entrypoint.prod.sh
+docker-compose -f docker-compose.prod.yml up -d --build  
+docker-compose -f docker-compose.prod.yml exec web python manage.py migrate --noinput 
+docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --no-input --clear
+```
 
 ## Roadmap
 Currently, I am working on release 1.0. which will include all basic features to count Doppelkopf points and manage players, as well as statics and CSV import/export.
