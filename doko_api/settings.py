@@ -17,8 +17,17 @@ import os
 import pytz
 import time
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv('dev.env')
+
+if Path("dev.env").is_file():
+    load_dotenv('dev.env')
+else:
+    load_dotenv('prod.env')
+
+SWAGGER_SETTINGS = {
+    'API_URL': os.environ.get("API_URL")
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
