@@ -56,6 +56,7 @@ class Round(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     bock_multiplier = models.IntegerField(default=1) #1 normal, 2 bock, 4 doubble bock, 8, 16
     bocks_parallel = models.IntegerField(default=0) # 0 bo bock, 1 bock, 2 doubble bock
+    was_solo_by = models.ForeignKey(Player, related_name='rounds', on_delete=models.SET_NULL, blank=True, null=True, to_field='player_id')
 
     def __str__(self):
         """

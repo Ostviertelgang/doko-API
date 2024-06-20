@@ -87,6 +87,7 @@ def add_round(request, game_id):
 
     if len(winning_players) == 1:
         is_solo = True
+        round_obj.was_solo_by = Player.objects.get(player_id=winning_players[0])
     else:
         is_solo = False
 
@@ -252,16 +253,8 @@ def get_players_with_pflichtsolo(request, game_id):
     players_with_solo_done = []
 
     for round in rounds:
-        amount_positive = 0
-        positive_player = None
-        player_points_round = round.player_points.all()
-        for player_point in player_points_round:
-            if player_point.points > 0:
-                amount_positive += 1
-                positive_player = player_point.player
-
-        if amount_positive == 1:
-            players_with_solo_done.append(positive_player)
+        if round.was_solo_by:
+            players_with_solo_done.append(round.was_solo_by)
     players_in_game = game.players.all()
     players_with_solo_ahead = [player for player in players_in_game if player not in players_with_solo_done]
     serializer = PlayerSerializer(players_with_solo_ahead, many=True)
