@@ -40,6 +40,10 @@ services:
     command: python main.py
     env_file:
       - ./prod.bot.env # get this file from the bot git repo
+    networks:
+        doko-api-network:
+    depends_on:
+      - nginx
 
 volumes:
   postgres_data:
