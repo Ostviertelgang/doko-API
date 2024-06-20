@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    #image: valentin123/doko-api:1.0
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+    command: gunicorn doko_api.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    env_file:
+      - ./prod.env
+    depends_on:
+      - db
+    networks:
+      doko-api-network:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./prod.db.env
+    networks:
+      doko-api-network:
+
+  nginx:
+    image: valentin123/doko-nginx:1.0
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    expose:
+      - 80
+    depends_on:
+      - web
+    networks:
+      doko-api-network:
+
+volumes:
+  postgres_data:
+  static_volume:
+
+networks:
+  doko-api-network:
