@@ -40,14 +40,15 @@ SECRET_KEY=CHANGE ME # change this to a secure key
 DJANGO_ALLOWED_HOSTS='nginx' # These are the allowed hosts for the django server. You can change the "nginx" to the name of your nginx container, or, depending on your setup, to the domain of your website.
 DEBUG=0 # set to 1 for debugging
 SQL_ENGINE=django.db.backends.postgresql # don't change this, postgres is the only supported database
-SQL_DATABASE=doko # you can change this however you like, but it is not necessary
-SQL_USER=hello_django # change this to a secure username
-SQL_PASSWORD=hello_django # change this to a secure password
+SQL_DATABASE=doko # you can change this however you like, but it is not necessary. Also change in the prod.db.env
+SQL_USER=hello_django # change this to a secure username. Also change in the prod.db.env
+SQL_PASSWORD=hello_django # change this to a secure password. Also change in the prod.db.env
 SQL_HOST=db # name of the postgres container. Don't change unless you know what you are doing
 SQL_PORT=5432 # default port for postgres. Don't change unless you know what you are doing
 TIME_ZONE= # can be left empty, will default system time zone, if this does not work to UTC
 API_URL= # your website url, where the API is hosted, for CORS
 ```
+Don't forget to change the values in the prod.db.env file as well, if you change the SQL_DATABASE, SQL_USER, or SQL_PASSWORD, which is advisable.
 
 
 ## Roadmap
