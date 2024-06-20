@@ -32,13 +32,27 @@ docker-compose -f docker-compose.prod.yml exec web python manage.py migrate --no
 docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --no-input --clear
 ```
 
+
+### The prod.env file
+Some fields will be preset with default values, but you also should change some values. Here is an overview:
+```bash
+SECRET_KEY=CHANGE ME # change this to a secure key
+DJANGO_ALLOWED_HOSTS='nginx' # These are the allowed hosts for the django server. You can change the "nginx" to the name of your nginx container, or, depending on your setup, to the domain of your website.
+DEBUG=0 # set to 1 for debugging
+SQL_ENGINE=django.db.backends.postgresql # don't change this, postgres is the only supported database
+SQL_DATABASE=doko # you can change this however you like, but it is not necessary
+SQL_USER=hello_django # change this to a secure username
+SQL_PASSWORD=hello_django # change this to a secure password
+SQL_HOST=db # name of the postgres container. Don't change unless you know what you are doing
+SQL_PORT=5432 # default port for postgres. Don't change unless you know what you are doing
+TIME_ZONE= # can be left empty, will default system time zone, if this does not work to UTC
+API_URL= # your website url, where the API is hosted, for CORS
+```
+
+
 ## Roadmap
 Currently, I am working on release 1.0. which will include all basic features to count Doppelkopf points and manage players, as well as statics and CSV import/export.
 
 Release 2.0 will be hardened for production deployment and will include authentication.
 
 Further analysis features are planned for future releases.
-
-#### old stuff
-TZ in .env empty, try to get os tz, else utc
-
