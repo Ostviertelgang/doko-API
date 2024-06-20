@@ -313,8 +313,8 @@ def get_player_points_for_game_stats(request, player_id):
         player = Player.objects.get(player_id=player_id)
     except Player.DoesNotExist:
         return Response({'error': 'Player not found.'}, status=404)
-
-    game_points = PlayerPoints.objects.filter(player=player, games__isnull=False)
+    # game removed flag is not set
+    game_points = PlayerPoints.objects.filter(player=player, games__isnull=False, games__flag_removed=False)
     serializer = PlayerPointsSerializer(game_points, many=True)
     return Response(serializer.data)
 
@@ -353,7 +353,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows players to be viewed or edited.
     """
-    queryset = Player.objects.all().order_by('name')
+    queryset = Player.objects.filter(flag_removed=False).order_by('name')
     serializer_class = PlayerSerializer
     lookup_field = 'player_id'  # Use 'player_id' as the lookup field
 
@@ -372,8 +372,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
         """
         Prevent deletion of the object.
         """
-        #todo save in db
-        return Response({"detail": "Deletion not allowed."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        # set the flag_removed to True
+        player = self.get_object()
+        player.flag_removed = True
+        player.name = "REMOVED USER"
+        player.save()
+        return Response({"detail": "Deletion not allowed, deleted player name"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class PlayerPointsViewSet(viewsets.ModelViewSet):
@@ -389,7 +393,7 @@ class GameViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows games to be viewed or edited.
     """
-    queryset = Game.objects.all().order_by('-created_at')
+    queryset = Game.objects.filter(flag_removed=False).order_by('-created_at')
     serializer_class = GameSerializer
     lookup_field = 'game_id'  # Use 'game_id' as the lookup field
 
@@ -406,8 +410,11 @@ class GameViewSet(viewsets.ModelViewSet):
         """
         Prevent deletion of the object.
         """
-        #todo save in db
-        return Response({"detail": "Deletion not allowed."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        game = self.get_object()
+        game.flag_removed = True
+        game.game_name = "REMOVED GAME"
+        game.save()
+        return Response({"detail": "Deletion not allowed, set to removed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     #permission_classes = [permissions.IsAuthenticated]
 

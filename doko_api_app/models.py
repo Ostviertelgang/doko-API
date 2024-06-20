@@ -23,6 +23,7 @@ class Game(models.Model):
     players = models.ManyToManyField('Player', related_name='games', blank=True)
     player_points = models.ManyToManyField('PlayerPoints', related_name='games', blank=True) # do not return to frontend
     bock_round_status = JSONField(default=list,blank=True)
+    flag_removed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Game {self.game_id}: {self.game_name}"
@@ -35,9 +36,9 @@ class Player(models.Model):
     """
     A player is a user
     """
-    #game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
-    player_id =models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    player_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    flag_removed = models.BooleanField(default=False)
 
     def __str__(self):
         """
@@ -71,12 +72,3 @@ class PlayerPoints(models.Model):
 
     def __str__(self):
         return f"{self.player.name} has {self.points} points"
-
-#019ee97c-9c6b-4ebb-9d8b-138d8c32e504
-"""
-[{
-    "player_id": "fed9589d-400e-4bff-9d98-6d983136a372",
-    "points": 2
-}]
-
-"""
