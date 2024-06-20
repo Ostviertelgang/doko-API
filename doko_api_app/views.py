@@ -355,17 +355,25 @@ class PlayerViewSet(viewsets.ModelViewSet):
     """
     queryset = Player.objects.all().order_by('name')
     serializer_class = PlayerSerializer
+    lookup_field = 'player_id'  # Use 'player_id' as the lookup field
 
     def get_object(self):
         """
         Returns the object the view is displaying.
         """
         # Get the UUID from the URL parameters
-        uuid = self.kwargs.get('pk')
+        uuid = self.kwargs.get(self.lookup_field)
 
         # Retrieve the Player object that matches the UUID
         return Player.objects.get(player_id=uuid)
     #permission_classes = [permissions.IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Prevent deletion of the object.
+        """
+        #todo save in db
+        return Response({"detail": "Deletion not allowed."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class PlayerPointsViewSet(viewsets.ModelViewSet):
