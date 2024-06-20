@@ -54,7 +54,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('get_export/', views.make_csv_export, name='get_export'),
     path('import_csv/', views.import_csv, name='import_csv'),
-    path('games/<uuid:game_id>/rounds/', views.get_all_rounds),
+    path('games/<uuid:game_id>/rounds/', views.get_all_rounds, name='get_all_rounds'),
     path('games/<uuid:game_id>/add_round/', views.add_round, name='add_round'),
     path('games/<uuid:game_id>/get_pflichtsolo/', views.get_players_with_pflichtsolo),
     path('stats/<uuid:player_id>/game_points/', views.get_player_points_for_game_stats),
@@ -63,5 +63,5 @@ urlpatterns = [
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('games/<uuid:game_id>/undo_round/', views.undo_round, name='undo_round'),
-    path('games/<uuid:game_id>/get_bock_status/', views.get_bock_status),
+    path('games/<uuid:game_id>/get_bock_status/', views.get_bock_status, name='get_bock_status'),
 ]

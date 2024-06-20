@@ -47,3 +47,74 @@ class ViewTestCase(TestCase):
         self.assertEqual(PlayerPoints.objects.get(player=self.test_players[1]).points, -10)
         self.assertEqual(PlayerPoints.objects.get(player=self.test_players[2]).points, -10)
         self.assertEqual(PlayerPoints.objects.get(player=self.test_players[3]).points, -10)
+
+    def test_add_round_normal(self):
+        """Test the /games/<game_id>/add_round/ endpoint with a normal round."""
+        data = {
+            'winning_players': [str(self.test_players[0].player_id), str(self.test_players[1].player_id)],
+            'losing_players': [str(self.test_players[2].player_id), str(self.test_players[3].player_id)],
+            'points': 10,
+            'caused_bock_parrallel': 0,
+        }
+        response = self.client.post(reverse('add_round', args=[str(self.test_game.game_id)]), data=data, content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Round.objects.count(), 1)
+        self.assertEqual(PlayerPoints.objects.count(), 4)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[0]).points, 10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[1]).points, 10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[2]).points, -10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[3]).points, -10)
+
+    def test_add_round_bock(self):
+        """Test the /games/<game_id>/add_round/ endpoint with a bock round."""
+        data = {
+            'winning_players': [str(self.test_players[0].player_id), str(self.test_players[1].player_id)],
+            'losing_players': [str(self.test_players[2].player_id), str(self.test_players[3].player_id)],
+            'points': 10,
+            'caused_bock_parrallel': 1,
+        }
+        response = self.client.post(reverse('add_round', args=[str(self.test_game.game_id)]), data=data, content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Round.objects.count(), 1)
+        self.assertEqual(PlayerPoints.objects.count(), 4)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[0]).points, 10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[1]).points, 10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[2]).points, -10)
+        self.assertEqual(PlayerPoints.objects.get(player=self.test_players[3]).points, -10)
+        # get the bock status
+        response = self.client.get(reverse('get_bock_status', args=[str(self.test_game.game_id)]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['bock_round_status'], [4])
+        # play a round causing a double bock
+        data = {
+            'winning_players': [str(self.test_players[0].player_id), str(self.test_players[1].player_id)],
+            'losing_players': [str(self.test_players[2].player_id), str(self.test_players[3].player_id)],
+            'points': 10,
+            'caused_bock_parrallel': 2,
+        }
+        response = self.client.post(reverse('add_round', args=[str(self.test_game.game_id)]), data=data, content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Round.objects.count(), 2)
+        self.assertEqual(PlayerPoints.objects.count(), 8)
+        # use the /games/<game_id>/rounds/ endpoint to get the points
+        response = self.client.get(reverse('get_all_rounds', args=[str(self.test_game.game_id)]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Get the last round
+        last_round = response.data[-1]
+
+        # Now you can access the data of the last round
+        for player_points in last_round['player_points']:
+            if player_points['player'] == str(self.test_players[0].player_id):
+                self.assertEqual(player_points['points'], 20)
+            elif player_points['player'] == str(self.test_players[1].player_id):
+                self.assertEqual(player_points['points'], 20)
+            elif player_points['player'] == str(self.test_players[2].player_id):
+                self.assertEqual(player_points['points'], -20)
+            elif player_points['player'] == str(self.test_players[3].player_id):
+                self.assertEqual(player_points['points'], -20)
+        # get the bock status
+        response = self.client.get(reverse('get_bock_status', args=[str(self.test_game.game_id)]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        print(response.data)
+        self.assertEqual(response.data['bock_round_status'], [3, 4, 4])
+
