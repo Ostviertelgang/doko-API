@@ -383,17 +383,24 @@ class GameViewSet(viewsets.ModelViewSet):
     """
     queryset = Game.objects.all().order_by('-created_at')
     serializer_class = GameSerializer
-
+    lookup_field = 'game_id'  # Use 'game_id' as the lookup field
 
     def get_object(self):
         """
         Returns the object the view is displaying.
         """
         # Get the UUID from the URL parameters
-        uuid = self.kwargs.get('pk')
-
+        uuid = self.kwargs.get(self.lookup_field)
         # Retrieve the Game object that matches the UUID
         return Game.objects.get(game_id=uuid)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Prevent deletion of the object.
+        """
+        #todo save in db
+        return Response({"detail": "Deletion not allowed."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
     #permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
