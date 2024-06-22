@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "doko_api_app.apps.DokoApiAppConfig",
+    'doko_api_app.apps.DokoApiAppConfig',
     'rest_framework',
     'corsheaders',
     'drf_yasg',
