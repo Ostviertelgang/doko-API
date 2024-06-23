@@ -53,11 +53,14 @@ def undo_round(request, game_id):
     player_points = round.player_points.all()
     for player_point in player_points:
         player_point.delete()
-        player_point.save()
 
     game.bock_round_status = [remaining_bock_rounds + 1 for remaining_bock_rounds in game.bock_round_status]
+    new_bock_status = []
+    for bock_status in game.bock_round_status:
+        if bock_status <= len(game.players.all()):
+            new_bock_status.append(bock_status)
+    game.bock_round_status = new_bock_status
     round.delete()
-    #round.save()
     game.save()
 
     return Response({'message': 'Round undone.'}, status=status.HTTP_200_OK)
