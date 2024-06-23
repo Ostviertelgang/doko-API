@@ -11,7 +11,7 @@ ENV PYTHONUNBUFFERED 1
 # install dependencies
 RUN apt-get update && apt-get -y install libpq-dev gcc
 RUN pip install --upgrade pip
-COPY ../requirements.txt .
+COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY ./entrypoint.sh .
