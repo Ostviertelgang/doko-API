@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   web:
-    #image: valentin123/doko-api:1.0
-    build:
-      context: ./
-      dockerfile: Dockerfile.prod
+    image: valentin123/doko-api-web:latest
     command: gunicorn doko_api.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_volume:/home/app/web/staticfiles
@@ -25,7 +22,7 @@ services:
       doko-api-network:
 
   nginx:
-    image: valentin123/doko-nginx:1.0
+    image: valentin123/doko-api-nginx:latest
     volumes:
       - static_volume:/home/app/web/staticfiles
     expose:
@@ -36,7 +33,7 @@ services:
       doko-api-network:
 
   discord_bot:
-    image: valentin123/doko-discord-bot:1.1.3
+    image: valentin123/doko-discord-bot:latest
     command: python main.py
     env_file:
       - ./prod.bot.env # get this file from the bot git repo
