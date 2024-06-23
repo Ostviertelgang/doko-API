@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   web:
-    #image: valentin123/doko-api:1.0
-    build:
-      context: ./
-      dockerfile: Dockerfile.prod
+    image: valentin123/doko-api-web:latest
     command: gunicorn doko_api.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_volume:/home/app/web/staticfiles
@@ -25,7 +22,7 @@ services:
       doko-api-network:
 
   nginx:
-    build: ./nginx
+    image: valentin123/doko-api-nginx:latest
     volumes:
       - static_volume:/home/app/web/staticfiles
     #ports:
