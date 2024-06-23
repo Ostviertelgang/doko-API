@@ -32,9 +32,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Load environment variables
-      uses: dotenv-linter/action@v3
+      uses: Supercharge/actions/dotenv-to-setenv@v1
       with:
-        path: prod.db.env
+        env-file: prod.db.env
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
