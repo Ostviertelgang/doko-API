@@ -20,10 +20,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-if Path("dev.env").is_file():
-    load_dotenv('dev.env')
-else:
-    load_dotenv('prod.env')
+
+load_dotenv('prod.env')
 
 SWAGGER_SETTINGS = {
     'API_URL': os.environ.get("API_URL")
