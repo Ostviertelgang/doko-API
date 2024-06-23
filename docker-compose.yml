@@ -9,7 +9,7 @@ services:
     volumes:
       - ./:/usr/src/app/
     env_file:
-      - ./dev.env
+      - ./prod.env
     depends_on:
       - db
   db:
@@ -18,7 +18,7 @@ services:
       #- ./data/:/var/lib/postgresql/data/
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-        - ./dev.env
+        - ./prod.db.env
 
 volumes:
   postgres_data:
