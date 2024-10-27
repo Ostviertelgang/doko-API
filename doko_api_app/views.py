@@ -18,8 +18,14 @@ from django.http import HttpResponse
 import pandas as pd
 from django.utils import timezone
 from doko_api_app.serializers import CompactPlayerPointsSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+
+
+
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_bock_status(request, game_id):
     """
     Get the bock status of a game
@@ -34,6 +40,7 @@ def get_bock_status(request, game_id):
     return Response({'bock_round_status': game.bock_round_status}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def undo_round(request, game_id):
     """
     Undo the last round of a game
@@ -66,6 +73,7 @@ def undo_round(request, game_id):
     return Response({'message': 'Round undone.'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_round(request, game_id):
     """
     Make a Round object, add the player points objects and attach it to a game before returning the round object
@@ -122,6 +130,7 @@ def add_round(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_player_points_to_game(request, game_id):
     """
     Add player points to a game
@@ -143,6 +152,7 @@ def add_player_points_to_game(request, game_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def make_csv_export(request):
     """
     Make a csv export
@@ -175,6 +185,7 @@ create_game_duplicates_based_on_ids_param = openapi.Parameter('create_game_dupli
 
 @swagger_auto_schema(method='post', manual_parameters=[file_param, create_game_duplicates_based_on_ids_param])
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @parser_classes([FormParser, MultiPartParser])
 def import_csv(request):
     """
@@ -245,6 +256,7 @@ def import_csv(request):
     return Response(import_metadata, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_players_with_pflichtsolo(request, game_id):
     """
     Get all players which have to still play their Pflichtsolo
@@ -265,6 +277,7 @@ def get_players_with_pflichtsolo(request, game_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def commit_game(request, game_id):
     """
     Commit game method
@@ -299,6 +312,7 @@ def commit_game(request, game_id):
 
 # get player pointsobejcts for a aplyer with timeframe with distincation for rounds /games, get  a link to the round or the game in the response
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_player_points_for_game_stats(request, player_id):
     """
     Get player points method
@@ -315,6 +329,7 @@ def get_player_points_for_game_stats(request, player_id):
     return Response(serializer.data)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_player_points_for_round_stats(request, player_id):
     """
     Get player points method
@@ -334,6 +349,7 @@ def get_player_points_for_round_stats(request, player_id):
     return Response(serializer.data)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_all_rounds(request, game_id):
     try:
         game = Game.objects.get(game_id=game_id)

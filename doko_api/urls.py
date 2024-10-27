@@ -19,6 +19,12 @@ from rest_framework import routers, permissions
 from django.contrib import admin
 from doko_api_app import views
 
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
 from doko_api_app import views
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -64,4 +70,7 @@ urlpatterns = [
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('games/<uuid:game_id>/undo_round/', views.undo_round, name='undo_round'),
     path('games/<uuid:game_id>/get_bock_status/', views.get_bock_status, name='get_bock_status'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
 ]
