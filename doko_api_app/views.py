@@ -5,23 +5,39 @@ from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from datetime import datetime
 from doko_api_app.serializers import GroupSerializer, UserSerializer
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from .models import Game, Round, PlayerPoints, Player
 from .serializers import GameSerializer, RoundSerializer, PlayerPointsSerializer, PlayerSerializer
 from django.http import HttpResponse
 import pandas as pd
 from django.utils import timezone
 from doko_api_app.serializers import CompactPlayerPointsSerializer
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
 
 
+
+class GenerateAuthToken(ObtainAuthToken):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'email': user.email
+        })
 
 
 @api_view(['GET'])
@@ -368,6 +384,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.filter(flag_removed=False).order_by('name')
     serializer_class = PlayerSerializer
     lookup_field = 'player_id'  # Use 'player_id' as the lookup field
+    permission_classes([IsAuthenticated])
 
     def get_object(self):
         """
@@ -398,7 +415,7 @@ class PlayerPointsViewSet(viewsets.ModelViewSet):
     """
     queryset = PlayerPoints.objects.all().order_by('player')
     serializer_class = PlayerPointsSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class GameViewSet(viewsets.ModelViewSet):
@@ -462,7 +479,7 @@ class RoundViewSet(viewsets.ModelViewSet):
     """
     queryset = Round.objects.all().order_by('created_at')
     serializer_class = RoundSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 class UserViewSet(viewsets.ModelViewSet):
     """

@@ -18,6 +18,7 @@ from django.urls import path, include, re_path
 from rest_framework import routers, permissions
 from django.contrib import admin
 from doko_api_app import views
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 from rest_framework_simplejwt.views import (
@@ -28,7 +29,7 @@ from rest_framework_simplejwt.views import (
 from doko_api_app import views
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-# import settings
+from doko_api_app.views import GenerateAuthToken
 from django.conf import settings
 
 schema_view = get_schema_view(
@@ -39,6 +40,7 @@ schema_view = get_schema_view(
    ),
    public=True,
    permission_classes=(permissions.AllowAny,),
+authentication_classes=(JWTAuthentication,),
    url=settings.SWAGGER_SETTINGS.get('API_URL')
 )
 
@@ -72,5 +74,7 @@ urlpatterns = [
     path('games/<uuid:game_id>/get_bock_status/', views.get_bock_status, name='get_bock_status'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
+  path('api/generate-token/', GenerateAuthToken.as_view(), name='generate_token'),
 ]
+
+
