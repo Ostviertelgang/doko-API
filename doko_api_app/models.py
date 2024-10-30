@@ -39,6 +39,7 @@ class Player(models.Model):
     name = models.CharField(max_length=200)
     player_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     flag_removed = models.BooleanField(default=False)
+    # todo add link to the user model?
 
     def __str__(self):
         """

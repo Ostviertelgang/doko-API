@@ -481,13 +481,36 @@ class RoundViewSet(viewsets.ModelViewSet):
     serializer_class = RoundSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.create_user(
+            username=serializer.validated_data['username'],
+            email=serializer.validated_data['email'],
+            password=serializer.validated_data['password']
+        )
+        # Create a Player object with the same username as name
+        Player.objects.create(
+            name=user.username,
+            #user=user
+        )
+        # Re-initialize the serializer with the created user instance
+        serializer = self.get_serializer(user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class GroupViewSet(viewsets.ModelViewSet):
