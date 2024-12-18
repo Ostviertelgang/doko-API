@@ -72,7 +72,7 @@ class RoundSerializer(serializers.ModelSerializer):
     player_points = PlayerPointsSerializer(many=True, read_only=True)
     class Meta:
         model = Round
-        fields = ['game', 'points', 'created_at', 'player_points', 'bocks_parallel', 'bock_multiplier']
+        fields = ['game', 'points', 'created_at', 'player_points', 'bocks_parallel', 'bock_multiplier', 'was_solo_by', 'was_pflichtsolo_by']
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):

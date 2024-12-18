@@ -101,6 +101,7 @@ def add_round(request, game_id):
     losing_players = request.data.get('losing_players')
     points = request.data.get('points')
     caused_bock_parrallel = request.data.get('caused_bock_parrallel')
+    was_pflichtsolo_by = request.data.get('was_pflichtsolo_by', False)
 
     try:
         game = Game.objects.get(game_id=game_id)
@@ -111,6 +112,10 @@ def add_round(request, game_id):
 
     round_obj.bocks_parallel = len(game.bock_round_status) # this is how many bocks are going
     round_obj.bock_multiplier = 2 ** round_obj.bocks_parallel
+
+    # only write was_pflichjt_solo_by if it is the first pflichtsolo of that player
+    if was_pflichtsolo_by and not round_obj.game.get_all_rounds().filter(was_pflichtsolo_by=was_pflichtsolo_by).exists():
+        round_obj.was_pflichtsolo_by = Player.objects.get(player_id=was_pflichtsolo_by)
 
     if len(winning_players) == 1:
         is_solo = True
@@ -284,8 +289,8 @@ def get_players_with_pflichtsolo(request, game_id):
     players_with_solo_done = []
 
     for round in rounds:
-        if round.was_solo_by:
-            players_with_solo_done.append(round.was_solo_by)
+        if round.was_pflichtsolo_by:
+            players_with_solo_done.append(round.was_pflichtsolo_by)
     players_in_game = game.players.all()
     players_with_solo_ahead = [player for player in players_in_game if player not in players_with_solo_done]
     serializer = PlayerSerializer(players_with_solo_ahead, many=True)
