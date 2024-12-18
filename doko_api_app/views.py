@@ -168,7 +168,7 @@ def add_player_points_to_game(request, game_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated]) # todo make it also export the rounds!bash
 def make_csv_export(request):
     """
     Make a csv export
