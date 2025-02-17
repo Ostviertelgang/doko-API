@@ -72,9 +72,11 @@ urlpatterns = [
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('games/<uuid:game_id>/undo_round/', views.undo_round, name='undo_round'),
     path('games/<uuid:game_id>/get_bock_status/', views.get_bock_status, name='get_bock_status'),
+    path('games/<uuid:game_id>/points-progression-gif/', views.get_points_progression_gif, name='points-progression-gif'),
+    path('games/<uuid:game_id>/points-progression-image/', views.get_points_progression_image, name='points-progression-image'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-  path('api/generate-token/', GenerateAuthToken.as_view(), name='generate_token'),
+    path('api/generate-token/', GenerateAuthToken.as_view(), name='generate_token'),
 ]
 
 

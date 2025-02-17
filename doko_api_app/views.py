@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from datetime import datetime
+from .points_visualization import PointsVisualizer
 from doko_api_app.serializers import GroupSerializer, UserSerializer
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -382,6 +383,122 @@ def get_all_rounds(request, game_id):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([])
+def get_points_progression_gif(request, game_id):
+    """
+    Get animated GIF of points progression
+    
+    Args:
+        request: HTTP request object
+        game_id: UUID of the game
+        
+    Returns:
+        HttpResponse with GIF image data
+        
+    Raises:
+        HTTP 404: If game not found
+        HTTP 400: If invalid parameters or visualization error
+    """
+    try:
+        # Get duration parameter (optional)
+        duration_ms = request.GET.get('duration', 500)
+        try:
+            duration_ms = int(duration_ms)
+        except ValueError:
+            return Response(
+                {'error': 'Invalid duration parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Get game and create visualizer
+        try:
+            game = Game.objects.get(game_id=game_id)
+        except Game.DoesNotExist:
+            return Response(
+                {'error': 'Game not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        try:
+            visualizer = PointsVisualizer(game)
+            gif_data = visualizer.create_gif(duration_ms=duration_ms)
+            
+            # Create response with raw GIF data
+            response = HttpResponse(content_type='image/gif')
+            response['Content-Disposition'] = f'inline; filename="game_{game_id}_progression.gif"'
+            response.write(gif_data.getvalue())
+            return response
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+    except Exception as e:
+        return Response(
+            {'error': f'Error generating visualization: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        # Ensure resources are cleaned up
+        if 'gif_data' in locals():
+            gif_data.close()
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_points_progression_image(request, game_id):
+    """
+    Get static image of points progression
+    
+    Args:
+        request: HTTP request object
+        game_id: UUID of the game
+        
+    Returns:
+        HttpResponse with PNG image data
+        
+    Raises:
+        HTTP 404: If game not found
+        HTTP 400: If visualization error
+    """
+    try:
+        # Get game and create visualizer
+        try:
+            game = Game.objects.get(game_id=game_id)
+        except Game.DoesNotExist:
+            return Response(
+                {'error': 'Game not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        try:
+            visualizer = PointsVisualizer(game)
+            image_data = visualizer.create_static_image()
+            
+            response = HttpResponse(image_data.getvalue(), content_type='image/png')
+            response['Content-Disposition'] = f'inline; filename="game_{game_id}_progression.png"'
+            return response
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+    except Exception as e:
+        return Response(
+            {'error': f'Error generating visualization: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        # Ensure resources are cleaned up
+        if 'image_data' in locals():
+            image_data.close()
+
+
 class PlayerViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows players to be viewed or edited.
@@ -430,6 +547,7 @@ class GameViewSet(viewsets.ModelViewSet):
     queryset = Game.objects.filter(flag_removed=False).order_by('-created_at')
     serializer_class = GameSerializer
     lookup_field = 'game_id'  # Use 'game_id' as the lookup field
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         """
@@ -449,8 +567,6 @@ class GameViewSet(viewsets.ModelViewSet):
         game.game_name = "REMOVED GAME"
         game.save()
         return Response({"detail": "Deletion not allowed, set to removed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    #permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
