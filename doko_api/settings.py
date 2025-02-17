@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 import os
 import pytz
 import time
-from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
 

@@ -1,4 +1,4 @@
-# Doppelkopf Counting Application API Server in Django
+# Doko-API Doppelkopf Point Counting Suite
 
 ![Banner Picture](https://i.imgur.com/KHbifDD.png)
 This is the doko-API Doppelkopf point counting suite backend server.
@@ -57,3 +57,6 @@ Currently, I am working on release 1.0. which will include all basic features to
 Release 2.0 will be hardened for production deployment and will include authentication.
 
 Further analysis features are planned for future releases.
+
+## Tests
+The current tests cover all functions required for the point counting and the player management views.
