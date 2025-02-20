@@ -21,7 +21,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.conf import settings
 
 
 
@@ -42,7 +43,6 @@ class GenerateAuthToken(ObtainAuthToken):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_bock_status(request, game_id):
     """
     Get the bock status of a game
@@ -57,7 +57,6 @@ def get_bock_status(request, game_id):
     return Response({'bock_round_status': game.bock_round_status}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def undo_round(request, game_id):
     """
     Undo the last round of a game
@@ -90,7 +89,6 @@ def undo_round(request, game_id):
     return Response({'message': 'Round undone.'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def add_round(request, game_id):
     """
     Make a Round object, add the player points objects and attach it to a game before returning the round object
@@ -152,7 +150,6 @@ def add_round(request, game_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def add_player_points_to_game(request, game_id):
     """
     Add player points to a game
@@ -174,7 +171,6 @@ def add_player_points_to_game(request, game_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated]) # todo make it also export the rounds!bash
 def make_csv_export(request):
     """
     Make a csv export
@@ -207,7 +203,6 @@ create_game_duplicates_based_on_ids_param = openapi.Parameter('create_game_dupli
 
 @swagger_auto_schema(method='post', manual_parameters=[file_param, create_game_duplicates_based_on_ids_param])
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 @parser_classes([FormParser, MultiPartParser])
 def import_csv(request):
     """
@@ -278,7 +273,6 @@ def import_csv(request):
     return Response(import_metadata, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_players_with_pflichtsolo(request, game_id):
     """
     Get all players which have to still play their Pflichtsolo
@@ -299,7 +293,6 @@ def get_players_with_pflichtsolo(request, game_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def commit_game(request, game_id):
     """
     Commit game method
@@ -332,9 +325,8 @@ def commit_game(request, game_id):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# get player pointsobejcts for a aplyer with timeframe with distincation for rounds /games, get  a link to the round or the game in the response
+# get player points object for a player with timeframe with distinction for rounds /games, get  a link to the round or the game in the response
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_player_points_for_game_stats(request, player_id):
     """
     Get player points method
@@ -351,7 +343,6 @@ def get_player_points_for_game_stats(request, player_id):
     return Response(serializer.data)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_player_points_for_round_stats(request, player_id):
     """
     Get player points method
@@ -371,7 +362,6 @@ def get_player_points_for_round_stats(request, player_id):
     return Response(serializer.data)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_all_rounds(request, game_id):
     try:
         game = Game.objects.get(game_id=game_id)
@@ -384,7 +374,6 @@ def get_all_rounds(request, game_id):
 
 
 @api_view(['GET'])
-@permission_classes([])
 def get_points_progression_gif(request, game_id):
     """
     Get animated GIF of points progression
@@ -448,7 +437,6 @@ def get_points_progression_gif(request, game_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_points_progression_image(request, game_id):
     """
     Get static image of points progression
@@ -506,7 +494,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.filter(flag_removed=False).order_by('name')
     serializer_class = PlayerSerializer
     lookup_field = 'player_id'  # Use 'player_id' as the lookup field
-    permission_classes([IsAuthenticated])
 
     def get_object(self):
         """
@@ -517,7 +504,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
         # Retrieve the Player object that matches the UUID
         return Player.objects.get(player_id=uuid)
-    #permission_classes = [permissions.IsAuthenticated]
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -537,7 +523,6 @@ class PlayerPointsViewSet(viewsets.ModelViewSet):
     """
     queryset = PlayerPoints.objects.all().order_by('player')
     serializer_class = PlayerPointsSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 class GameViewSet(viewsets.ModelViewSet):
@@ -547,7 +532,6 @@ class GameViewSet(viewsets.ModelViewSet):
     queryset = Game.objects.filter(flag_removed=False).order_by('-created_at')
     serializer_class = GameSerializer
     lookup_field = 'game_id'  # Use 'game_id' as the lookup field
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         """
@@ -600,7 +584,6 @@ class RoundViewSet(viewsets.ModelViewSet):
     """
     queryset = Round.objects.all().order_by('created_at')
     serializer_class = RoundSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -611,7 +594,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action == 'create' or settings.DISABLE_AUTHENTICATION:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
@@ -640,4 +623,3 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all().order_by('name')
     serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
