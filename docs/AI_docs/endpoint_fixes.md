@@ -1,76 +1,57 @@
-# Endpoint Fixes Plan
+# Stats Endpoints Fixes and Improvements
 
-## 1. Stats Endpoint Issue
+## Overview
+This document details the fixes and improvements made to the stats endpoints in the Doko API.
 
-### Current Problem
-- The `/games/stats/` request is being caught by the games router which expects a UUID
-- This results in a ValidationError as "stats" is not a valid UUID
-- The actual stats endpoints are under different paths (`/stats/<uuid:player_id>/...`)
+## Changes Made
 
-### Solution
-1. Create a new dedicated endpoint for game stats
-2. Reorder URL patterns in urls.py to ensure specific routes take precedence over router patterns
-3. Move the router.urls include to the end of the urlpatterns
+### 1. Logging Setup
+- Added structured logging configuration in `doko_api/logging_config.py`
+- Configured both console and file logging with detailed formatting
+- Created logs directory for persistent log storage
+- Added comprehensive debug logging to stats endpoints
 
-### Implementation Steps
-1. Create new view function for game stats
-2. Add new URL pattern before the router.urls include
-3. Update URL patterns order in urls.py
+### 2. Game Points Endpoint Fixes
+- Fixed issue with games relationship by properly handling ManyToMany field
+- Changed from direct access to using `list(point.games.all())`
+- Added commit_game call in tests to ensure game points are created
+- Added debug logging to track:
+  - Player lookup
+  - Query parameters
+  - Points retrieval
+  - Games relationship handling
+  - Solo count calculation
 
-```python
-# New URL pattern to add before router.urls
-path('games/stats/', views.get_game_stats, name='game_stats'),
+### 3. Round Points Endpoint Improvements
+- Verified bock multiplier behavior
+- Confirmed that solo points during bock rounds are correctly multiplied:
+  - Base points * 3 (for solo) * bock_multiplier
+  - Example: 3 points * 3 * 2 = 18 points for a solo during bock round
+
+## Testing
+All tests are now passing:
+- test_game_points: Verifies correct game point calculation and solo counting
+- test_round_points: Verifies correct round point calculation including bock multipliers
+- test_round_points_filtering: Verifies game type filtering functionality
+- test_deprecated_endpoint: Verifies deprecation warning
+
+## Debug Logging Example
+```
+DEBUG Getting game points for player 83483b3c-f966-4a6f-95c3-b6889fabb827
+DEBUG Found player: Player 1
+DEBUG Query params: start_date=None, end_date=None, is_game_closed=None, sort_by=date, sort_order=desc
+DEBUG Found 1 game points
+DEBUG Processing point 9 with points=11
+DEBUG Found 1 games for this point
+DEBUG Games: [<Game: Game a68ed2e8-b410-4576-a743-c3a2fe606d93: Test Doppelkopf Game>]
+DEBUG Processing game a68ed2e8-b410-4576-a743-c3a2fe606d93 (Test Doppelkopf Game)
+DEBUG Found 1 solo rounds for player in this game
+DEBUG Total rounds in game: 2
 ```
 
-## 2. Points Progression GIF Issue
-
-### Current Problem
-- 406 Not Acceptable error when requesting points progression GIF
-- Indicates content negotiation issues with the Accept header
-
-### Solution
-1. Modify the view to explicitly handle content negotiation
-2. Ensure proper content type headers are set
-3. Add explicit Accept header handling
-
-### Implementation Steps
-1. Update get_points_progression_gif view to handle content negotiation:
-```python
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_points_progression_gif(request, game_id):
-    # Add explicit content type negotiation
-    if 'image/gif' not in request.accepted_media_types:
-        return Response(
-            {'error': 'Client must accept image/gif content type'},
-            status=status.HTTP_406_NOT_ACCEPTABLE
-        )
-    
-    # Rest of the existing view code...
-```
-
-2. Ensure client sends correct Accept header:
-```
-Accept: image/gif
-```
-
-## Testing Plan
-
-1. Test stats endpoint:
-```bash
-curl -X GET http://localhost:8000/games/stats/
-```
-
-2. Test points progression GIF:
-```bash
-curl -X GET -H "Accept: image/gif" http://localhost:8000/games/{game_id}/points-progression-gif/
-```
-
-## Implementation Order
-
-1. Implement stats endpoint fix first as it's causing immediate errors
-2. Then implement points progression GIF fix
-3. Test both changes thoroughly
-4. Document API changes for frontend team
-
-Would you like me to proceed with implementing these changes?
+## Future Improvements
+1. Consider adding caching for frequently accessed stats
+2. Implement position calculation (currently marked as TODO)
+3. Add more detailed error logging for edge cases
+4. Consider adding performance metrics logging
+5. Add rate limiting for stats endpoints to prevent abuse
