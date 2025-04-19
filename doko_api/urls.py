@@ -59,6 +59,7 @@ schema_view = get_schema_view(
    patterns=[
        path('', include('doko_api_app.urls_v1')),
        path('v2/', include('doko_api_app.urls_v2')),
+       path('v2/stats/', include('doko_api_app.urls_stats')),
    ],
 )
 
@@ -76,6 +77,9 @@ urlpatterns = [
     
     # Include v2 URLs under /v2/ prefix
     path('v2/', include('doko_api_app.urls_v2')),
+    
+    # Include stats URLs under /v2/stats/ prefix
+    path('v2/stats/', include('doko_api_app.urls_stats')),
     
     # Admin and authentication
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
