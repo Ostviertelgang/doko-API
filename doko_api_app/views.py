@@ -1,23 +1,182 @@
 from django.shortcuts import render
-
-# Create your views here.
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from datetime import datetime
-from doko_api_app.serializers import GroupSerializer, UserSerializer
-from rest_framework.decorators import api_view, parser_classes
+from .points_visualization import PointsVisualizer
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from .models import Game, Round, PlayerPoints, Player
-from .serializers import GameSerializer, RoundSerializer, PlayerPointsSerializer, PlayerSerializer
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.conf import settings
 from django.http import HttpResponse
 import pandas as pd
 from django.utils import timezone
-from doko_api_app.serializers import CompactPlayerPointsSerializer
+
+from .models import Game, Round, PlayerPoints, Player
+from .serializers import (
+    GameSerializer, RoundSerializer, PlayerPointsSerializer,
+    PlayerSerializer, UserSerializer, GroupSerializer,
+    CompactPlayerPointsSerializer
+)
+
+class GenerateAuthToken(ObtainAuthToken):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                         context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'email': user.email
+        })
+
+class PlayerViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows players to be viewed or edited.
+    """
+    queryset = Player.objects.filter(flag_removed=False).order_by('name')
+    serializer_class = PlayerSerializer
+    lookup_field = 'player_id'
+
+    def get_object(self):
+        uuid = self.kwargs.get(self.lookup_field)
+        return Player.objects.get(player_id=uuid)
+
+    def destroy(self, request, *args, **kwargs):
+        player = self.get_object()
+        player.flag_removed = True
+        player.name = "REMOVED USER"
+        player.save()
+        return Response(
+            {"detail": "Deletion not allowed, deleted player name"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+class GameViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows games to be viewed or edited.
+    """
+    queryset = Game.objects.filter(flag_removed=False).order_by('-created_at')
+    serializer_class = GameSerializer
+    lookup_field = 'game_id'
+
+    def get_object(self):
+        uuid = self.kwargs.get(self.lookup_field)
+        return Game.objects.get(game_id=uuid)
+
+    def destroy(self, request, *args, **kwargs):
+        game = self.get_object()
+        game.flag_removed = True
+        game.game_name = "REMOVED GAME"
+        game.save()
+        return Response(
+            {"detail": "Deletion not allowed, set to removed"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+        
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Create a list to hold the response data
+        response_data = []
+
+        # Iterate over the queryset
+        for game in queryset:
+            # Serialize the Game instance
+            serializer = self.get_serializer(game)
+
+            # Retrieve the related PlayerPoints instances
+            player_points = PlayerPoints.objects.filter(games__game_id=game.game_id)
+
+            # Serialize the PlayerPoints instances using the custom serializer
+            player_points_serializer = CompactPlayerPointsSerializer(player_points, many=True)
+
+            # Add the serialized PlayerPoints data to the serialized Game data
+            game_data = serializer.data
+            game_data['player_points'] = player_points_serializer.data
+
+            # Add the game data to the response data
+            response_data.append(game_data)
+
+        return Response(response_data)
+
+
+class PlayerPointsViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows player points to be viewed or edited.
+    """
+    queryset = PlayerPoints.objects.all().order_by('player')
+    serializer_class = PlayerPointsSerializer
+
+
+class RoundViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows rounds to be viewed or edited.
+    """
+    queryset = Round.objects.all().order_by('created_at')
+    serializer_class = RoundSerializer
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action == 'create' or settings.DISABLE_AUTHENTICATION:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create user
+        user = User.objects.create_user(
+            username=serializer.validated_data['username'],
+            email=serializer.validated_data['email'],
+            password=serializer.validated_data['password']
+        )
+        
+        # Create linked player
+        player = Player.objects.create(
+            name=user.username,
+            user=user,
+            join_date=timezone.now(),
+            last_active=timezone.now()
+        )
+        
+        # Add to Player group by default
+        player_group = Group.objects.get(name='Player')
+        user.groups.add(player_group)
+        
+        serializer = self.get_serializer(user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+class GroupViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [IsAuthenticated]
+
+# V1 API Endpoints for backward compatibility
 
 @api_view(['GET'])
 def get_bock_status(request, game_id):
@@ -72,11 +231,11 @@ def add_round(request, game_id):
     :param request:
     :return:
     """
-    #game_id = request.data.get('game_id')
     winning_players = request.data.get('winning_players')
     losing_players = request.data.get('losing_players')
     points = request.data.get('points')
     caused_bock_parrallel = request.data.get('caused_bock_parrallel')
+    was_pflichtsolo_by = request.data.get('was_pflichtsolo_by', False)
 
     try:
         game = Game.objects.get(game_id=game_id)
@@ -87,6 +246,10 @@ def add_round(request, game_id):
 
     round_obj.bocks_parallel = len(game.bock_round_status) # this is how many bocks are going
     round_obj.bock_multiplier = 2 ** round_obj.bocks_parallel
+
+    # only write was_pflichjt_solo_by if it is the first pflichtsolo of that player
+    if was_pflichtsolo_by and not round_obj.game.get_all_rounds().filter(was_pflichtsolo_by=was_pflichtsolo_by).exists():
+        round_obj.was_pflichtsolo_by = Player.objects.get(player_id=was_pflichtsolo_by)
 
     if len(winning_players) == 1:
         is_solo = True
@@ -256,8 +419,8 @@ def get_players_with_pflichtsolo(request, game_id):
     players_with_solo_done = []
 
     for round in rounds:
-        if round.was_solo_by:
-            players_with_solo_done.append(round.was_solo_by)
+        if round.was_pflichtsolo_by:
+            players_with_solo_done.append(round.was_pflichtsolo_by)
     players_in_game = game.players.all()
     players_with_solo_ahead = [player for player in players_in_game if player not in players_with_solo_done]
     serializer = PlayerSerializer(players_with_solo_ahead, many=True)
@@ -297,7 +460,7 @@ def commit_game(request, game_id):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# get player pointsobejcts for a aplyer with timeframe with distincation for rounds /games, get  a link to the round or the game in the response
+# get player points object for a player with timeframe with distinction for rounds /games, get  a link to the round or the game in the response
 @api_view(['GET'])
 def get_player_points_for_game_stats(request, player_id):
     """
@@ -345,122 +508,152 @@ def get_all_rounds(request, game_id):
     return Response(serializer.data)
 
 
-class PlayerViewSet(viewsets.ModelViewSet):
+@api_view(['GET'])
+def get_points_progression_gif(request, game_id):
     """
-    API endpoint that allows players to be viewed or edited.
+    Get animated GIF of points progression
+    
+    Args:
+        request: HTTP request object
+        game_id: UUID of the game
+        
+    Returns:
+        HttpResponse with GIF image data
+        
+    Raises:
+        HTTP 404: If game not found
+        HTTP 400: If invalid parameters or visualization error
     """
-    queryset = Player.objects.filter(flag_removed=False).order_by('name')
-    serializer_class = PlayerSerializer
-    lookup_field = 'player_id'  # Use 'player_id' as the lookup field
+    try:
+        # Get duration parameter (optional)
+        duration_ms = request.GET.get('duration', 500)
+        try:
+            duration_ms = int(duration_ms)
+        except ValueError:
+            return Response(
+                {'error': 'Invalid duration parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-    def get_object(self):
-        """
-        Returns the object the view is displaying.
-        """
-        # Get the UUID from the URL parameters
-        uuid = self.kwargs.get(self.lookup_field)
+        # Get game and create visualizer
+        try:
+            game = Game.objects.get(game_id=game_id)
+        except Game.DoesNotExist:
+            return Response(
+                {'error': 'Game not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        # Retrieve the Player object that matches the UUID
-        return Player.objects.get(player_id=uuid)
-    #permission_classes = [permissions.IsAuthenticated]
+        try:
+            visualizer = PointsVisualizer(game)
+            gif_data = visualizer.create_gif(duration_ms=duration_ms)
 
-    def destroy(self, request, *args, **kwargs):
-        """
-        Prevent deletion of the object.
-        """
-        # set the flag_removed to True
-        player = self.get_object()
-        player.flag_removed = True
-        player.name = "REMOVED USER"
-        player.save()
-        return Response({"detail": "Deletion not allowed, deleted player name"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            # Create response with raw GIF data
+            response = HttpResponse(content_type='image/gif')
+            response['Content-Disposition'] = f'inline; filename="game_{game_id}_progression.gif"'
+            response.write(gif_data.getvalue())
+            return response
+
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    except Exception as e:
+        return Response(
+            {'error': f'Error generating visualization: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        # Ensure resources are cleaned up
+        if 'gif_data' in locals():
+            gif_data.close()
 
 
-class PlayerPointsViewSet(viewsets.ModelViewSet):
+@api_view(['GET'])
+def get_points_progression_image(request, game_id):
     """
-    API endpoint that allows player points to be viewed or edited.
+    Get static image of points progression
+    
+    Args:
+        request: HTTP request object
+        game_id: UUID of the game
+        
+    Returns:
+        HttpResponse with PNG image data
+        
+    Raises:
+        HTTP 404: If game not found
+        HTTP 400: If visualization error
     """
-    queryset = PlayerPoints.objects.all().order_by('player')
-    serializer_class = PlayerPointsSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+    try:
+        # Get game and create visualizer
+        try:
+            game = Game.objects.get(game_id=game_id)
+        except Game.DoesNotExist:
+            return Response(
+                {'error': 'Game not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
+        try:
+            visualizer = PointsVisualizer(game)
+            image_data = visualizer.create_static_image()
 
-class GameViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows games to be viewed or edited.
-    """
-    queryset = Game.objects.filter(flag_removed=False).order_by('-created_at')
-    serializer_class = GameSerializer
-    lookup_field = 'game_id'  # Use 'game_id' as the lookup field
+            response = HttpResponse(image_data.getvalue(), content_type='image/png')
+            response['Content-Disposition'] = f'inline; filename="game_{game_id}_progression.png"'
+            return response
 
-    def get_object(self):
-        """
-        Returns the object the view is displaying.
-        """
-        # Get the UUID from the URL parameters
-        uuid = self.kwargs.get(self.lookup_field)
-        # Retrieve the Game object that matches the UUID
-        return Game.objects.get(game_id=uuid)
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-    def destroy(self, request, *args, **kwargs):
-        """
-        Prevent deletion of the object.
-        """
-        game = self.get_object()
-        game.flag_removed = True
-        game.game_name = "REMOVED GAME"
-        game.save()
-        return Response({"detail": "Deletion not allowed, set to removed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    except Exception as e:
+        return Response(
+            {'error': f'Error generating visualization: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    finally:
+        # Ensure resources are cleaned up
+        if 'image_data' in locals():
+            image_data.close()
 
-    #permission_classes = [permissions.IsAuthenticated]
+# Game management endpoints (V2 simplified versions)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_round_v2(request, game_id):
+    """Add a round to a game"""
+    try:
+        game = Game.objects.get(game_id=game_id)
+    except Game.DoesNotExist:
+        return Response(
+            {'error': 'Game not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    round_obj = Round.objects.create(game=game)
+    round_obj.save()
+    serializer = RoundSerializer(round_obj)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        # Create a list to hold the response data
-        response_data = []
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def commit_game_v2(request, game_id):
+    """Close a game and calculate final points"""
+    try:
+        game = Game.objects.get(game_id=game_id)
+    except Game.DoesNotExist:
+        return Response(
+            {'error': 'Game not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-        # Iterate over the queryset
-        for game in queryset:
-            # Serialize the Game instance
-            serializer = self.get_serializer(game)
+    game.is_closed = True
+    game.closed_at = timezone.now()
+    game.save()
 
-            # Retrieve the related PlayerPoints instances
-            player_points = PlayerPoints.objects.filter(games__game_id=game.game_id)
-
-            # Serialize the PlayerPoints instances using the custom serializer
-            player_points_serializer = CompactPlayerPointsSerializer(player_points, many=True)
-
-            # Add the serialized PlayerPoints data to the serialized Game data
-            game_data = serializer.data
-            game_data['player_points'] = player_points_serializer.data
-
-            # Add the game data to the response data
-            response_data.append(game_data)
-
-        return Response(response_data)
-
-class RoundViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows rounds to be viewed or edited.
-    """
-    queryset = Round.objects.all().order_by('created_at')
-    serializer_class = RoundSerializer
-    #permission_classes = [permissions.IsAuthenticated]
-
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all().order_by('name')
-    serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer = GameSerializer(game)
+    return Response(serializer.data, status=status.HTTP_200_OK)
